@@ -1,12 +1,16 @@
 import fs from 'fs';
 import mongoose from 'mongoose';
 import Problem from './models/problem.js'; // Adjust path if needed
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 // Your admin user's ObjectId as a string
 const ADMIN_USER_ID = '683aa3b49cd353da1bc6f5fe';
 
 // Connect to MongoDB Atlas
-mongoose.connect('mongodb+srv://asifmohammed85113:asifmohammed85113@cluster0.2vz3hsg.mongodb.net/OJFINAL');
+mongoose.connect(process.env.MONGODB_URL);
+
 
 // Read and parse the JSON file
 const data = fs.readFileSync('./problems.json', 'utf8');
