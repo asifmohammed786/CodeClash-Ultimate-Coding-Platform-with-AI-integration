@@ -23,7 +23,6 @@ export const register = async(req,res ) =>{
         //token generation 
         const token  = jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: '7d'})
         
-        
         //add token in cookie 
         res.cookie('token', token, {
             httpOnly: true,
@@ -39,13 +38,14 @@ export const register = async(req,res ) =>{
             text: `Welcome to OJ , Your account has been created successfully with email id: ${email}`
         }
         await transporter.sendMail(mailOptions);
-        return res.json({success: true});
-
+        // RETURN TOKEN IN RESPONSE BODY
+        return res.json({success: true, token}); // <-- updated line
 
     } catch (error) {
         res.json({success: false, message: error.message})
     }
 }
+
 //login
 export const login = async (req,res) => {
     const{email, password } = req.body;
@@ -67,7 +67,6 @@ export const login = async (req,res) => {
          //token generation 
         const token  = jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn: '7d'})
         
-        
         //add token in cookie 
         res.cookie('token', token, {
             httpOnly: true,
@@ -75,7 +74,8 @@ export const login = async (req,res) => {
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
-        return res.json({success: true});
+        // RETURN TOKEN IN RESPONSE BODY
+        return res.json({success: true, token}); // <-- updated line
         
     } catch (error) {
         return res.json({success: false, message: error.message})

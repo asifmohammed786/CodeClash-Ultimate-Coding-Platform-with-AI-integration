@@ -5,7 +5,8 @@ import cookieParser from "cookie-parser";
 import connectDB from './config/mongodb.js'
 import authRouter from './routes/authRoutes.js'
 import userRouter from "./routes/userRoutes.js";
-
+import problemRouter from "./routes/problemRoutes.js"; // ✅ Added
+import compilerRoutes from './routes/compilerRoutes.js';
 
 
 const app = express();
@@ -14,13 +15,16 @@ connectDB();
 
 const allowedOrigins = ['http://localhost:5173']
 
-app.use (express.json());
+app.use(express.json());
 app.use(cookieParser());
-app.use(cors({origin: allowedOrigins ,credentials: true}))
-//api endpoints
-app.get("/", (req,res)=> res.send("API working "));
-app.use('/api/auth', authRouter)
-app.use('/api/user', userRouter)
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 
-app.listen(port, ()=> console.log(`Server started on port : ${port}`));
+// Routes
+app.get("/", (req, res) => res.send("API working "));
+app.use('/api/auth', authRouter);
+app.use('/api/user', userRouter);
+app.use('/api/problems', problemRouter); // ✅ Added
+app.use('/api/compiler', compilerRoutes);
+
+app.listen(port, () => console.log(`Server started on port : ${port}`));

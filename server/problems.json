@@ -1,0 +1,102 @@
+[
+  {
+    "title": "Two Sum",
+    "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. Each input has exactly one solution, and you may not use the same element twice.",
+    "difficulty": "Easy",
+    "testCases": [
+      { "input": "4\n2 7 11 15\n9", "output": "0 1", "isSample": true },
+      { "input": "3\n3 2 4\n6", "output": "1 2", "isSample": true },
+      { "input": "4\n1 2 3 4\n5", "output": "0 3", "isSample": false }
+    ]
+  },
+  {
+    "title": "Valid Parentheses",
+    "description": "Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.",
+    "difficulty": "Easy",
+    "testCases": [
+      { "input": "()", "output": "true", "isSample": true },
+      { "input": "()[]{}", "output": "true", "isSample": true },
+      { "input": "(]", "output": "false", "isSample": false }
+    ]
+  },
+  {
+    "title": "Palindrome Number",
+    "description": "Given an integer x, return true if x is palindrome integer. An integer is a palindrome when it reads the same backward as forward.",
+    "difficulty": "Easy",
+    "testCases": [
+      { "input": "121", "output": "true", "isSample": true },
+      { "input": "-121", "output": "false", "isSample": true },
+      { "input": "10", "output": "false", "isSample": false }
+    ]
+  },
+  {
+    "title": "Longest Substring Without Repeating Characters",
+    "description": "Given a string s, find the length of the longest substring without repeating characters.",
+    "difficulty": "Medium",
+    "testCases": [
+      { "input": "abcabcbb", "output": "3", "isSample": true },
+      { "input": "bbbbb", "output": "1", "isSample": true },
+      { "input": "pwwkew", "output": "3", "isSample": false }
+    ]
+  },
+  {
+    "title": "Container With Most Water",
+    "description": "You are given an integer array height of length n. There are n vertical lines drawn such that the two endpoints of the ith line are (i, 0) and (i, height[i]). Find two lines that together with the x-axis form a container that contains the most water.",
+    "difficulty": "Medium",
+    "testCases": [
+      { "input": "9\n1 8 6 2 5 4 8 3 7", "output": "49", "isSample": true },
+      { "input": "2\n1 1", "output": "1", "isSample": true },
+      { "input": "5\n5 4 3 2 1", "output": "6", "isSample": false }
+    ]
+  },
+  {
+    "title": "3Sum",
+    "description": "Given an integer array nums, return all the triplets [nums[i], nums[j], nums[k]] such that i != j, i != k, and j != k, and nums[i] + nums[j] + nums[k] == 0. The solution set must not contain duplicate triplets.",
+    "difficulty": "Medium",
+    "testCases": [
+      { "input": "6\n-1 0 1 2 -1 -4", "output": "[[-1,-1,2],[-1,0,1]]", "isSample": true },
+      { "input": "3\n0 1 1", "output": "[]", "isSample": true },
+      { "input": "4\n0 0 0 0", "output": "[[0,0,0]]", "isSample": false }
+    ]
+  },
+  {
+    "title": "Longest Palindromic Substring",
+    "description": "Given a string s, return the longest palindromic substring in s.",
+    "difficulty": "Medium",
+    "testCases": [
+      { "input": "babad", "output": "bab", "isSample": true },
+      { "input": "cbbd", "output": "bb", "isSample": true },
+      { "input": "a", "output": "a", "isSample": false }
+    ]
+  },
+  {
+    "title": "Group Anagrams",
+    "description": "Given an array of strings strs, group the anagrams together. You can return the answer in any order.",
+    "difficulty": "Medium",
+    "testCases": [
+      { "input": "6\neat\ntea\ntan\nate\nnat\nbat", "output": "[[\"bat\"],[\"nat\",\"tan\"],[\"ate\",\"eat\",\"tea\"]]", "isSample": true },
+      { "input": "3\na\nb\nc", "output": "[[\"a\"],[\"b\"],[\"c\"]]", "isSample": true },
+      { "input": "4\nabc\nbca\ncab\ndef", "output": "[[\"def\"],[\"abc\",\"bca\",\"cab\"]]", "isSample": false }
+    ]
+  },
+  {
+    "title": "Median of Two Sorted Arrays",
+    "description": "Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays.",
+    "difficulty": "Hard",
+    "testCases": [
+      { "input": "2 1\n1 3\n2", "output": "2.0", "isSample": true },
+      { "input": "2 2\n1 2\n3 4", "output": "2.5", "isSample": true },
+      { "input": "1 1\n0\n0", "output": "0.0", "isSample": false }
+    ]
+  },
+  {
+    "title": "Merge k Sorted Lists",
+    "description": "You are given an array of k linked-lists lists, each linked-list is sorted in ascending order. Merge all the linked-lists into one sorted linked-list and return it.",
+    "difficulty": "Hard",
+    "testCases": [
+      { "input": "3\n3\n1 4 5\n3\n1 3 4\n2\n2 6", "output": "1 1 2 3 4 4 5 6", "isSample": true },
+      { "input": "2\n2\n1 2\n2\n3 4", "output": "1 2 3 4", "isSample": true },
+      { "input": "1\n1\n0", "output": "0", "isSample": false }
+    ]
+  }
+]
