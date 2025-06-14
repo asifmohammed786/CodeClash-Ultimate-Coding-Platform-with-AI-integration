@@ -9,14 +9,12 @@ const Problems = () => {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
-  // Fetch all problems on mount
   useEffect(() => {
     axios.get(backendUrl + '/api/problems')
       .then(res => setProblems(res.data.problems || []))
       .catch(() => setProblems([]));
   }, [backendUrl]);
 
-  // Handler for delete (admin only)
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this problem?")) return;
     try {
@@ -30,12 +28,10 @@ const Problems = () => {
     }
   };
 
-  // Filter problems by search
   const filteredProblems = problems.filter(p =>
     p.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Difficulty badge color
   const getDifficultyBadge = (difficulty) => {
     if (difficulty === 'Easy')
       return 'bg-green-100 text-green-700 border border-green-400';
@@ -45,11 +41,11 @@ const Problems = () => {
   };
 
   return (
-    <div className="p-8 max-w-3xl mx-auto relative">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white relative">
       {/* Home button at top-left */}
-      <div className="absolute left-0 top-0">
+      <div className="absolute left-0 top-0 m-4 z-10">
         <button
-          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 mt-2 ml-2"
+          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 shadow"
           onClick={() => navigate('/')}
         >
           ← Home
@@ -57,9 +53,9 @@ const Problems = () => {
       </div>
       {/* Add Problem button at top-right (if admin) */}
       {userData?.isAdmin && (
-        <div className="absolute right-0 top-0">
+        <div className="absolute right-0 top-0 m-4 z-10">
           <button
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 mt-2 mr-2"
+            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 shadow"
             onClick={() => navigate('/add-problem')}
           >
             Add Problem
@@ -67,14 +63,14 @@ const Problems = () => {
         </div>
       )}
       {/* Main content */}
-      <div className="flex flex-col items-center">
-        <h1 className="text-3xl font-bold mb-6 mt-6 text-center">Problems</h1>
+      <div className="flex flex-col items-center pt-20 pb-12 max-w-2xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8 text-center drop-shadow-lg">Problems</h1>
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Find problem..."
-          className="mb-6 px-3 py-2 border rounded w-full"
+          className="mb-8 px-4 py-2 border border-indigo-200 rounded w-full shadow focus:ring-2 focus:ring-indigo-300"
         />
         <div className="space-y-4 w-full">
           {filteredProblems.length === 0 ? (
@@ -83,10 +79,10 @@ const Problems = () => {
             filteredProblems.map(p => (
               <div
                 key={p._id}
-                className="flex items-center justify-between p-4 bg-white rounded shadow hover:shadow-md transition"
+                className="flex items-center justify-between p-5 bg-white rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 border border-indigo-100"
               >
                 <div>
-                  <Link to={`/problems/${p._id}`} className="font-semibold text-indigo-700 hover:underline text-lg">
+                  <Link to={`/problems/${p._id}`} className="font-bold text-lg text-indigo-700 hover:underline">
                     {p.title}
                   </Link>
                   <span

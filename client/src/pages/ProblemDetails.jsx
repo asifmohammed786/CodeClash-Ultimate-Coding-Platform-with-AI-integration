@@ -12,11 +12,36 @@ const ProblemDetails = () => {
   const [problem, setProblem] = useState(null);
   const [tab, setTab] = useState('description');
 
+  // For AI Bug Finder
+  const [showBugFinder, setShowBugFinder] = useState(false);
+  const [aiBugResult, setAiBugResult] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  // For AI Hint
+  const [aiHint, setAiHint] = useState('');
+  const [hintLoading, setHintLoading] = useState(false);
+
+  // For code/language/failure tracking
+  const [userCode, setUserCode] = useState('');
+  const [language, setLanguage] = useState('cpp');
+  const [lastFailCase, setLastFailCase] = useState(null);
+  const [lastFailOutput, setLastFailOutput] = useState('');
+
   useEffect(() => {
     axios.get(`${backendUrl}/api/problems/${id}`)
       .then(res => setProblem(res.data.problem))
       .catch(() => setProblem(null));
   }, [backendUrl, id]);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (showBugFinder) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [showBugFinder]);
 
   if (!problem) return <div className="p-8">Loading...</div>;
 
@@ -28,8 +53,46 @@ const ProblemDetails = () => {
     return 'bg-red-100 text-red-700 border border-red-400';
   };
 
-  // Filter sample test cases
+  // Sample test cases
   const sampleTestCases = problem.testCases?.filter(tc => tc.isSample);
+
+  // Dummy: Pick first sample as failing case for demo
+  // Replace with real failed test case from submission result
+  const failingTestCase = lastFailCase || (sampleTestCases && sampleTestCases[0]);
+  const errorOutput = lastFailOutput || 'Your code output or error here';
+
+  // AI Bug Finder handler
+  const handleAIBugFinder = async () => {
+    setAiLoading(true);
+    setAiBugResult(null);
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/ai/bug-finder`, {
+        code: userCode || '// User code here',
+        language: language || 'cpp',
+        testCaseInput: failingTestCase?.input || '',
+        testCaseOutput: failingTestCase?.output || '',
+        errorOutput: errorOutput || '',
+        problemTitle: problem.title
+      });
+      setAiBugResult(data.explanation);
+    } catch (err) {
+      setAiBugResult('AI could not analyze the bug. Please try again.');
+    }
+    setAiLoading(false);
+  };
+
+  // AI Hint handler
+  const handleAIHint = async () => {
+    setHintLoading(true);
+    setAiHint('');
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/ai/hint`, { problem });
+      setAiHint(data.hint);
+    } catch (err) {
+      setAiHint('AI could not generate a hint. Please try again.');
+    }
+    setHintLoading(false);
+  };
 
   return (
     <div className="flex h-[calc(100vh-64px)]">
@@ -77,7 +140,29 @@ const ProblemDetails = () => {
         <div className="p-6">
           {tab === 'description' && (
             <>
-              <h2 className="text-2xl font-extrabold mb-2 text-indigo-700">{problem.title}</h2>
+              <div className="flex items-center gap-4 mb-2 flex-wrap">
+                <h2 className="text-2xl font-extrabold text-indigo-700">{problem.title}</h2>
+                <button
+                  className="ml-2 px-3 py-1 bg-pink-600 text-white rounded shadow hover:bg-pink-700 font-bold"
+                  onClick={() => setShowBugFinder(true)}
+                  style={{ fontSize: "0.95rem" }}
+                >
+                  🪲 AI Bug Finder
+                </button>
+                <button
+                  className="ml-2 px-3 py-1 bg-indigo-600 text-white rounded shadow hover:bg-indigo-700 font-bold"
+                  onClick={handleAIHint}
+                  disabled={hintLoading}
+                  style={{ fontSize: "0.95rem" }}
+                >
+                  {hintLoading ? "Getting Hint..." : "💡 Get AI Hint"}
+                </button>
+              </div>
+              {aiHint && (
+                <div className="mt-4 p-3 bg-blue-50 border-l-4 border-blue-500 rounded text-gray-900 whitespace-pre-wrap text-sm">
+                  <b>AI Hint:</b> {aiHint}
+                </div>
+              )}
               <div className="mb-4 text-gray-800 whitespace-pre-line text-lg">{problem.description}</div>
               <div className="mb-4 flex items-center gap-2">
                 <span className="font-semibold text-gray-600">Difficulty:</span>
@@ -113,8 +198,53 @@ const ProblemDetails = () => {
       </div>
       {/* Right: Code Editor */}
       <div className="w-full md:w-1/2 bg-[#18181b] flex flex-col">
-        <Compiler problem={problem} />
+        <Compiler
+          problem={problem}
+          setUserCode={setUserCode}
+          setLanguage={setLanguage}
+          setLastFailCase={setLastFailCase}
+          setLastFailOutput={setLastFailOutput}
+        />
       </div>
+
+      {/* AI Bug Finder Modal */}
+      {showBugFinder && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-xl relative max-h-[80vh] overflow-y-auto">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+              onClick={() => setShowBugFinder(false)}
+            >✕</button>
+            <h2 className="text-xl font-bold mb-4 text-pink-700">AI Bug Finder</h2>
+            <div className="mb-2 text-sm text-gray-600">AI will analyze your code and the failing test case.</div>
+            <div className="mb-2">
+              <b>Code:</b>
+              <pre className="bg-gray-100 rounded p-2 mb-2 overflow-x-auto text-xs">{userCode || '// User code here'}</pre>
+            </div>
+            <div className="mb-2">
+              <b>Input:</b> <pre className="inline">{failingTestCase?.input || ''}</pre>
+            </div>
+            <div className="mb-2">
+              <b>Expected Output:</b> <pre className="inline">{failingTestCase?.output || ''}</pre>
+            </div>
+            <div className="mb-2">
+              <b>Your Output/Error:</b> <pre className="inline">{errorOutput || ''}</pre>
+            </div>
+            <button
+              className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded font-bold"
+              onClick={handleAIBugFinder}
+              disabled={aiLoading}
+            >
+              {aiLoading ? "Analyzing..." : "Analyze Bug"}
+            </button>
+            {aiBugResult && (
+              <div className="mt-4 bg-gray-50 border-l-4 border-pink-600 p-3 rounded text-gray-800 whitespace-pre-wrap text-sm">
+                {aiBugResult}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

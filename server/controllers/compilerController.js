@@ -1,35 +1,39 @@
-import { exec, execSync } from 'child_process';
+import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Problem from '../models/problem.js';
 import Submission from '../models/submission.js';
+import userModel from "../models/user.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Language configuration
+// Configuration
+const EXECUTION_CONFIG = {
+  TIME_LIMIT: 2000, // 2 seconds
+  OUTPUT_LIMIT: 100 * 1024 // 100KB
+};
+
 const languageConfig = {
   cpp: {
     ext: 'cpp',
-    compile: (codeFile, exeFile) => `g++ ${codeFile} -o ${exeFile}`,
-    execute: (exeFile, inputFile) => `${exeFile} < ${inputFile}`,
+    compile: (codeFile, exeFile) => `g++ -std=c++20 ${codeFile} -o ${exeFile}`,
+    execute: exeFile => exeFile,
     needsCompile: true
   },
   java: {
     ext: 'java',
-    compile: (codeFile) => `javac ${codeFile}`,
-    execute: (dir, inputFile) => `java -cp ${dir} Main < ${inputFile}`,
+    compile: (codeFile) => `javac --release 20 ${codeFile}`,
+    execute: (dir) => `java -cp ${dir} Main`,
     needsCompile: true
   },
   python: {
     ext: 'py',
-    compile: () => '', // No compile step for Python
-    execute: (codeFile, inputFile) => `python3 ${codeFile} < ${inputFile}`,
+    execute: (codeFile) => `python3 ${codeFile}`,
     needsCompile: false
   }
 };
 
-// Common execution handler
 async function executeCodeHandler({ code, input, language = 'cpp' }) {
   const config = languageConfig[language];
   if (!config) return { output: '', error: 'Unsupported language' };
@@ -47,52 +51,115 @@ async function executeCodeHandler({ code, input, language = 'cpp' }) {
     fs.writeFileSync(codeFile, code);
     fs.writeFileSync(inputFile, input || '');
 
-    // Compile if needed
+    // Compilation for compiled languages
     if (config.needsCompile) {
-      try {
-        if (language === 'cpp') {
-          execSync(config.compile(codeFile, exeFile), { timeout: 5000 });
-        } else if (language === 'java') {
-          execSync(config.compile(codeFile), { cwd: tempDir, timeout: 5000 });
-        }
-      } catch (err) {
+      const compileResult = await runProcess(
+        config.compile(codeFile, exeFile),
+        { cwd: tempDir },
+        'Compilation error'
+      );
+      if (compileResult.error) {
         cleanupFiles();
-        return {
-          output: '',
-          error: err.stderr?.toString() || err.message || 'Compilation error'
-        };
+        return compileResult;
       }
     }
 
-    // Run the code
-    let runCmd;
-    if (language === 'cpp') {
-      runCmd = config.execute(exeFile, inputFile);
-    } else if (language === 'java') {
-      runCmd = config.execute(tempDir, inputFile);
-    } else if (language === 'python') {
-      runCmd = config.execute(codeFile, inputFile);
-    }
+    // Execution with resource limits
+    const executeCmd = config.needsCompile
+      ? config.execute(exeFile)
+      : config.execute(codeFile);
 
-    const output = execSync(runCmd, { cwd: tempDir, timeout: 5000 }).toString().trim();
+    const execResult = await runProcess(
+      executeCmd,
+      {
+        cwd: tempDir,
+        input: fs.readFileSync(inputFile),
+        timeout: EXECUTION_CONFIG.TIME_LIMIT
+      },
+      'Runtime error'
+    );
+
     cleanupFiles();
-    return { output, error: '' };
-  } catch (error) {
+    return {
+      output: execResult.output.slice(0, EXECUTION_CONFIG.OUTPUT_LIMIT),
+      error: execResult.error
+    };
+  } catch (err) {
     cleanupFiles();
     return {
       output: '',
-      error: error.stderr?.toString() || error.message || 'Runtime error'
+      error: err.message || 'Internal error'
     };
   }
 
-  // Cleanup helper
+  async function runProcess(command, options, errorType) {
+    return new Promise(resolve => {
+      // Use detached:true and negative PID for robust process killing
+      const proc = spawn(command, [], {
+        ...options,
+        shell: true,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        detached: true
+      });
+
+      let output = '';
+      let error = '';
+      let timedOut = false;
+      let outputExceeded = false;
+
+      const timeout = setTimeout(() => {
+        try {
+          process.kill(-proc.pid, 'SIGKILL'); // kill process group
+        } catch (e) {
+          proc.kill('SIGKILL');
+        }
+        timedOut = true;
+      }, EXECUTION_CONFIG.TIME_LIMIT);
+
+      proc.stdout.on('data', data => {
+        output += data.toString();
+        if (output.length > EXECUTION_CONFIG.OUTPUT_LIMIT) {
+          try {
+            process.kill(-proc.pid, 'SIGKILL');
+          } catch (e) {
+            proc.kill('SIGKILL');
+          }
+          outputExceeded = true;
+        }
+      });
+
+      proc.stderr.on('data', data => error += data.toString());
+
+      proc.on('close', code => {
+        clearTimeout(timeout);
+
+        let finalError = '';
+        if (timedOut) {
+          finalError = 'Time Limit Exceeded';
+        } else if (outputExceeded) {
+          finalError = 'Output Limit Exceeded';
+        } else if (code !== 0 && errorType) {
+          finalError = error || errorType;
+        }
+
+        resolve({
+          output: output.trim(),
+          error: finalError
+        });
+      });
+
+      if (options.input) {
+        proc.stdin.write(options.input);
+        proc.stdin.end();
+      }
+    });
+  }
+
   function cleanupFiles() {
     [codeFile, inputFile].forEach(file => {
       if (fs.existsSync(file)) fs.unlinkSync(file);
     });
-    if (language === 'cpp' && fs.existsSync(exeFile)) {
-      fs.unlinkSync(exeFile);
-    }
+    if (fs.existsSync(exeFile)) fs.unlinkSync(exeFile);
     if (language === 'java') {
       const classFiles = fs.readdirSync(tempDir).filter(f => f.endsWith('.class'));
       classFiles.forEach(f => fs.unlinkSync(path.join(tempDir, f)));
@@ -105,10 +172,16 @@ export const executeCode = async (req, res) => {
   try {
     const { code, input, language = 'cpp' } = req.body;
     const { output, error } = await executeCodeHandler({ code, input, language });
-    if (error) return res.status(500).json({ error });
-    res.json({ output });
+    res.status(200).json({
+      success: !error,
+      output: error ? '' : output,
+      error: error || ''
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Internal server error'
+    });
   }
 };
 
@@ -123,6 +196,7 @@ export const submitCode = async (req, res) => {
 
     let verdict = 'Accepted';
     let errorMsg = '';
+    let failingTestCase = null;
     const hiddenTestCases = problem.testCases.filter(tc => !tc.isSample);
 
     for (const testCase of hiddenTestCases) {
@@ -133,20 +207,25 @@ export const submitCode = async (req, res) => {
       });
 
       if (error) {
-        verdict = error.includes('Compilation') ? 'Compilation Error' : 'Runtime Error';
+        verdict = error.includes('Compilation') ? 'Compilation Error'
+               : error.includes('Time Limit') ? 'Time Limit Exceeded'
+               : error.includes('Output Limit') ? 'Output Limit Exceeded'
+               : 'Runtime Error';
         errorMsg = error;
+        failingTestCase = testCase;
         break;
       }
 
       if (output.trim() !== testCase.output.trim()) {
         verdict = 'Wrong Answer';
         errorMsg = `Input:\n${testCase.input}\nExpected:\n${testCase.output}\nReceived:\n${output}`;
+        failingTestCase = testCase;
         break;
       }
     }
 
     // Save submission
-    await Submission.create({
+    const submission = await Submission.create({
       user: userId,
       problem: problemId,
       code,
@@ -155,7 +234,22 @@ export const submitCode = async (req, res) => {
       error: errorMsg
     });
 
-    res.json({ verdict, error: errorMsg });
+    // Update user stats if accepted
+    if (verdict === 'Accepted') {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const difficulty = problem.difficulty.toLowerCase();
+
+      await userModel.findByIdAndUpdate(userId, {
+        $inc: {
+          [`problemsSolved.${difficulty}`]: 1,
+          [`submissionCalendar.${today}`]: 1
+        },
+        $addToSet: { languagesUsed: language },
+        $push: { submissions: submission._id }
+      });
+    }
+
+    res.json({ verdict, error: errorMsg, failingTestCase });
 
   } catch (err) {
     res.status(500).json({
@@ -165,7 +259,7 @@ export const submitCode = async (req, res) => {
   }
 };
 
-// Get submission history (unchanged)
+// Get submission history
 export const getSubmissions = async (req, res) => {
   const userId = req.userId;
   const { problemId } = req.query;

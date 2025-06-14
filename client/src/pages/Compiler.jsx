@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
 import { AppContext } from '../context/AppContext';
@@ -28,7 +28,90 @@ if __name__ == "__main__":
     main()`
 };
 
-const Compiler = ({ problem }) => {
+// Gemini Assistant Component
+const GeminiAssistant = ({ code, problem, backendUrl }) => {
+  const [aiResponse, setAiResponse] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleAsk = async () => {
+    setLoading(true);
+    setAiResponse('');
+    try {
+      const prompt = `Explain the following code:\n${code}\n\nProblem:\n${problem?.title}\n${problem?.description}`;
+      const res = await axios.post(`${backendUrl}/api/ai/ask`, { prompt });
+      setAiResponse(res.data.text);
+    } catch (err) {
+      setAiResponse("Error: " + (err.response?.data?.error || err.message));
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="my-4">
+      <button
+        onClick={handleAsk}
+        disabled={loading}
+        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+      >
+        {loading ? "Asking Gemini..." : "Ask Gemini AI"}
+      </button>
+      {aiResponse && (
+        <div className="mt-3 p-3 bg-gray-100 rounded border text-black max-h-64 overflow-y-auto">
+          <strong>Gemini AI:</strong>
+          <pre className="whitespace-pre-wrap">{aiResponse}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// AI Code Reviewer Component
+const CodeReviewer = ({ code, language, problem, backendUrl }) => {
+  const [review, setReview] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleReview = async () => {
+    setLoading(true);
+    setReview('');
+    try {
+      const res = await axios.post(`${backendUrl}/api/ai/review`, {
+        code,
+        language,
+        problem: { title: problem?.title }
+      });
+      setReview(res.data.text);
+    } catch (err) {
+      setReview("Error: " + (err.response?.data?.error || err.message));
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="my-4">
+      <button
+        onClick={handleReview}
+        disabled={loading}
+        className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+      >
+        {loading ? "Reviewing..." : "Review My Code"}
+      </button>
+      {review && (
+        <div className="mt-3 p-3 bg-gray-100 rounded border text-black max-h-64 overflow-y-auto">
+          <strong>AI Code Review:</strong>
+          <pre className="whitespace-pre-wrap">{review}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const Compiler = ({
+  problem,
+  setUserCode,        // callback from parent to track latest code
+  setLanguage: setParentLanguage, // callback from parent to track language
+  setLastFailCase,    // callback from parent to track failing test case
+  setLastFailOutput   // callback from parent to track user's output/error
+}) => {
   const { backendUrl } = useContext(AppContext);
   const [language, setLanguage] = useState('cpp');
   const [code, setCode] = useState(starterTemplates['cpp']);
@@ -36,17 +119,27 @@ const Compiler = ({ problem }) => {
   const [output, setOutput] = useState('');
   const [verdict, setVerdict] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [runLoading, setRunLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+
+  // Keep parent in sync for AI Bug Finder
+  useEffect(() => {
+    if (setUserCode) setUserCode(code);
+  }, [code, setUserCode]);
+  useEffect(() => {
+    if (setParentLanguage) setParentLanguage(language);
+  }, [language, setParentLanguage]);
 
   // Update code template when language changes
   const handleLanguageChange = (e) => {
     const lang = e.target.value;
     setLanguage(lang);
     setCode(starterTemplates[lang]);
+    if (setParentLanguage) setParentLanguage(lang);
   };
 
   const runCode = async () => {
-    setLoading(true);
+    setRunLoading(true);
     setOutput('');
     setVerdict('');
     setErrorMsg('');
@@ -57,14 +150,17 @@ const Compiler = ({ problem }) => {
         language
       });
       setOutput(data.output);
+      if (setLastFailOutput) setLastFailOutput(data.output);
     } catch (err) {
-      setOutput(err.response?.data?.error || 'Compilation error');
+      const errMsg = err.response?.data?.error || 'Compilation error';
+      setOutput(errMsg);
+      if (setLastFailOutput) setLastFailOutput(errMsg);
     }
-    setLoading(false);
+    setRunLoading(false);
   };
 
   const handleSubmit = async () => {
-    setLoading(true);
+    setSubmitLoading(true);
     setVerdict('');
     setErrorMsg('');
     try {
@@ -78,11 +174,16 @@ const Compiler = ({ problem }) => {
       });
       setVerdict(data.verdict);
       setErrorMsg(data.error || '');
+      if (data.verdict !== 'Accepted' && setLastFailCase && setLastFailOutput) {
+        setLastFailCase(data.failingTestCase || null); // expects backend to send this
+        setLastFailOutput(data.error || data.output || '');
+      }
     } catch (err) {
       setVerdict(err.response?.data?.verdict || 'Submission failed');
       setErrorMsg(err.response?.data?.error || '');
+      if (setLastFailOutput) setLastFailOutput(err.response?.data?.error || '');
     }
-    setLoading(false);
+    setSubmitLoading(false);
   };
 
   return (
@@ -102,6 +203,9 @@ const Compiler = ({ problem }) => {
           <option value="python">Python</option>
         </select>
       </div>
+      
+      {/* AI Code Reviewer */}
+      <CodeReviewer code={code} language={language} problem={problem} backendUrl={backendUrl} />
       {/* Editor Panel */}
       <div className="flex-1 min-h-[350px] max-h-[60vh] border-b border-gray-700 bg-[#1e1e1e] shadow-lg">
         <Editor
@@ -133,16 +237,16 @@ const Compiler = ({ problem }) => {
             <button
               onClick={runCode}
               className="px-6 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded shadow transition"
-              disabled={loading}
+              disabled={runLoading || submitLoading}
             >
-              {loading ? 'Running...' : 'Run Code'}
+              {runLoading ? 'Running...' : 'Run Code'}
             </button>
             <button
               onClick={handleSubmit}
               className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded shadow transition"
-              disabled={loading}
+              disabled={runLoading || submitLoading}
             >
-              {loading ? 'Submitting...' : 'Submit'}
+              {submitLoading ? 'Submitting...' : 'Submit'}
             </button>
           </div>
         </div>

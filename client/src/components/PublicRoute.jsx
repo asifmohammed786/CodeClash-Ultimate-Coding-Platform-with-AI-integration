@@ -5,7 +5,7 @@ import { AppContext } from '../context/AppContext';
 const PublicRoute = ({ children }) => {
   const { userData } = useContext(AppContext);
   if (userData) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/home" replace />;
   }
   return children;
 };

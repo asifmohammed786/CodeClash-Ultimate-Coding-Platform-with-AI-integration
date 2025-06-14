@@ -9,7 +9,6 @@ export const AppContextProvider = (props) => {
     const [isLoggedin, setIsLoggedin] = useState(false);
     const [userData, setUserData] = useState(null);
 
-    // Helper to get token from localStorage
     const getToken = () => localStorage.getItem("token");
 
     const getAuthState = async () => {
@@ -33,7 +32,6 @@ export const AppContextProvider = (props) => {
         } catch (error) {
             setIsLoggedin(false);
             setUserData(null);
-            toast.error(error.message);
         }
     };
 

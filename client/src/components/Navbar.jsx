@@ -20,48 +20,31 @@ const Navbar = () => {
         }
     }
 
-    const sendVerificationOtp = async () => {
-        try {
-            if (!userData) {
-                toast.error("User data not loaded. Please login again.");
-                return;
-            }
-            if (userData.isAccountVerified) {
-                toast.info("Your account is already verified!");
-                return;
-            }
-            const token = localStorage.getItem("token");
-            const { data } = await axios.post(
-                backendUrl + '/api/auth/send-verify-otp',
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            if (data.success) {
-                navigate('/email-verify');
-                toast.success(data.message);
-            } else {
-                toast.error(data.message);
-            }
-        } catch (error) {
-            toast.error(error.message);
-        }
-    }
-
     return (
         <div className='w-full flex items-center justify-between px-8 py-4 fixed top-0 left-0 bg-white bg-opacity-80 z-50 shadow'>
-            {/* Logo on the left */}
-            <img src={assets.person_icon} alt="" className='w-14 h-14' />
+            {/* Logo and Compiler button on the left */}
+            <div className="flex items-center gap-4">
+                <img src={assets.person_icon} alt="" className='w-14 h-14' />
+                <button
+                    className="ml-2 px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 font-semibold shadow transition"
+                    onClick={() => navigate('/compiler')}
+                >
+                    Editor
+                </button>
+            </div>
 
             {/* Navigation links on the right */}
             <div className="flex items-center gap-6">
-                {/*<Link to="/problems" className="text-gray-800 font-semibold hover:underline">
-                    Problems
-                </Link>*/}
                 {userData?.isAdmin && (
                     <Link to="/add-problem" className="text-indigo-700 font-semibold hover:underline">
                         Add Problem
                     </Link>
                 )}
+                 {userData?.isAdmin && (
+                    <Link to="/add-contest" className="text-pink-700 font-semibold hover:underline">
+                        Add Contest
+                    </Link>
+                    )}
                 {/* User menu */}
                 {userData?.name ? (
                     <div className='relative group'>
@@ -72,22 +55,33 @@ const Navbar = () => {
                         {/* Dropdown */}
                         <div className='absolute right-0 mt-0 min-w-[140px] hidden group-hover:block bg-white shadow-lg rounded z-10'>
                             <ul className='list-none m-0 p-2 text-sm'>
-                                {userData && !userData.isAccountVerified && (
-                                    <li
-                                        onClick={sendVerificationOtp}
-                                        className='py-1 px-2 hover:bg-gray-200 cursor-pointer rounded'
-                                    >
-                                        Verify email
-                                    </li>
-                                )}
-                                <li
-                                    onClick={logout}
-                                    className='py-1 px-2 hover:bg-gray-200 cursor-pointer rounded'
-                                >
-                                    Logout
-                                </li>
-                            </ul>
+                                {/* Verify email option removed */}
+                                </ul>
+                                                                    {/* Inside the dropdown menu */}
+                                        <ul className='list-none m-0 p-2 text-sm'>
+                                        <li
+                                            onClick={() => navigate('/profile')}
+                                            className='py-1 px-2 hover:bg-gray-200 cursor-pointer rounded'
+                                        >
+                                            Profile
+                                        </li>
+                                        <li
+                                            onClick={() => navigate('/leaderboard')}
+                                            className='py-1 px-2 hover:bg-gray-200 cursor-pointer rounded'
+                                        >
+                                            Leaderboard
+                                        </li>
+                                        <li
+                                            onClick={logout}
+                                            className='py-1 px-2 hover:bg-gray-200 cursor-pointer rounded'
+                                        >
+                                            Logout
+                                        </li>
+                                        </ul>
+
                         </div>
+                        {/* Inside the dropdown menu */}
+
                     </div>
                 ) : (
                     <button
@@ -97,6 +91,7 @@ const Navbar = () => {
                         Login <img src={assets.arrow_icon} alt="" />
                     </button>
                 )}
+
             </div>
         </div>
     )

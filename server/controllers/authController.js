@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import userModel from "../models/user.js";
 import transporter from '../config/nodemailer.js'
+import { googleLogin } from './googleAuth.js';
+
 
 //register
 export const register = async(req,res ) =>{
@@ -167,6 +169,7 @@ export const isAuthenticated = async(req,res)=>{
 
 
 //password reset using otp 
+//password reset using otp 
 export const sendResetOtp = async (req,res) => {
     const{email} = req.body;
     if(!email){
@@ -181,16 +184,22 @@ export const sendResetOtp = async (req,res) => {
         user.resetOtp = otp;
         user.resetOtpExpireAt = Date.now()+ 15 * 60 * 1000
         await user.save();
+        
         const mailOption = {
-            from: process.env.SENDER_EMAIL,
+            from: process.env.SENDER_EMAIL, // Make sure this is set in .env
             to: user.email,
-            subject: 'Password Reset OTP',
-            text: `Your OTP for resetting your password is ${otp}. Use this OTP to reset your password`
+            subject: 'Password Reset OTP - CodeClash',
+            text: `Your OTP for resetting your password is ${otp}. Use this OTP to reset your password. This OTP will expire in 15 minutes.`
         }
+        
+        console.log('Attempting to send email to:', user.email); // Add logging
         await transporter.sendMail(mailOption);
-        res.json({success: true, message: "password reset OTP sent on email"});
+        console.log('Email sent successfully to:', user.email); // Add logging
+        
+        res.json({success: true, message: "Password reset OTP sent on email"});
 
     } catch (error) {
+        console.error('sendResetOtp error:', error); // Add detailed logging
         return res.json({success:false, message: error.message})
     }
 }
@@ -224,3 +233,5 @@ export const resetPassword = async (req,res)=>{
         return res.json({success: false, message: error.message});
     }
 }
+
+export { googleLogin };
