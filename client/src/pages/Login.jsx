@@ -11,8 +11,11 @@ import codeMascot from '../assets/code-mascot.json'
 
 const Login = () => {
     const navigate = useNavigate()
-    const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContext)
-
+    const {
+        backendUrl,
+        setIsLoggedin,
+        getUserData
+    } = useContext(AppContext); // ✅ CORRECT way to use it
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
 
@@ -127,7 +130,10 @@ const Login = () => {
                 </p>
             </motion.div>
         </div>
+        
     )
 }
+
+
 
 export default Login

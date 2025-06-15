@@ -56,28 +56,46 @@ export const getAllProblems = async (req, res) => {
   }
 };
 
-// Get single problem (Public) - UPDATED PARAM NAME
+// Get single problem (Public) — Secure version
 export const getProblem = async (req, res) => {
   try {
-    const problem = await Problem.findById(req.params.problemId) // Changed to problemId
+    const problem = await Problem.findById(req.params.problemId)
       .populate('createdBy', 'name email');
-      
+
     if (!problem) {
       return res.status(404).json({
         success: false,
         message: "Problem not found"
       });
     }
-    res.json({ success: true, problem });
+
+    const user = await User.findById(req.userId);
+    const isAdmin = user?.isAdmin;
+
+    const filteredTestCases = isAdmin
+      ? problem.testCases
+      : problem.testCases.filter(tc => tc.isSample);
+
+    const response = {
+      _id: problem._id,
+      title: problem.title,
+      description: problem.description,
+      difficulty: problem.difficulty,
+      createdBy: problem.createdBy,
+      createdAt: problem.createdAt,
+      testCases: filteredTestCases
+    };
+
+    res.json({ success: true, problem: response });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };
 
-// Update problem (Admin only) - UPDATED PARAM NAME
+// Update problem (Admin only)
 export const updateProblem = async (req, res) => {
   try {
     // Extra admin check
@@ -90,7 +108,7 @@ export const updateProblem = async (req, res) => {
     }
 
     const problem = await Problem.findByIdAndUpdate(
-      req.params.problemId, // Changed to problemId
+      req.params.problemId,
       req.body,
       { new: true }
     );
@@ -103,7 +121,7 @@ export const updateProblem = async (req, res) => {
   }
 };
 
-// Delete problem (Admin only) - UPDATED PARAM NAME
+// Delete problem (Admin only)
 export const deleteProblem = async (req, res) => {
   try {
     // Extra admin check
@@ -115,7 +133,7 @@ export const deleteProblem = async (req, res) => {
       });
     }
 
-    await Problem.findByIdAndDelete(req.params.problemId); // Changed to problemId
+    await Problem.findByIdAndDelete(req.params.problemId);
     res.json({ 
       success: true, 
       message: "Problem deleted" 

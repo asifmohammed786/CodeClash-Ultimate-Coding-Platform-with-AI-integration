@@ -8,6 +8,7 @@ export const AppContextProvider = (props) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
     const [isLoggedin, setIsLoggedin] = useState(false);
     const [userData, setUserData] = useState(null);
+    const [isAuthLoading, setIsAuthLoading] = useState(true); // 🔁 NEW
 
     const getToken = () => localStorage.getItem("token");
 
@@ -32,6 +33,8 @@ export const AppContextProvider = (props) => {
         } catch (error) {
             setIsLoggedin(false);
             setUserData(null);
+        } finally {
+            setIsAuthLoading(false); // ✅ Always turn off loading
         }
     };
 
@@ -66,7 +69,8 @@ export const AppContextProvider = (props) => {
         backendUrl,
         isLoggedin, setIsLoggedin,
         userData, setUserData,
-        getUserData
+        getUserData,
+        isAuthLoading // ✅ NEW
     };
 
     return (

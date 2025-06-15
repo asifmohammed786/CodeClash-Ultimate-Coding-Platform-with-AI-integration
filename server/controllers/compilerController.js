@@ -168,22 +168,37 @@ async function executeCodeHandler({ code, input, language = 'cpp' }) {
 }
 
 // Run code with custom input
+// Run code with custom input
 export const executeCode = async (req, res) => {
   try {
     const { code, input, language = 'cpp' } = req.body;
     const { output, error } = await executeCodeHandler({ code, input, language });
+
+    let verdict = 'Success';
+    if (error) {
+      verdict = error.includes('Compilation') ? 'Compilation Error'
+            : error.includes('Time Limit') ? 'Time Limit Exceeded'
+            : error.includes('Output Limit') ? 'Output Limit Exceeded'
+            : 'Runtime Error';
+    }
+
     res.status(200).json({
       success: !error,
       output: error ? '' : output,
-      error: error || ''
+      error: error || '',
+      verdict
     });
+
   } catch (err) {
     res.status(500).json({
       success: false,
-      error: err.message || 'Internal server error'
+      output: '',
+      error: err.message || 'Internal server error',
+      verdict: 'Server Error'
     });
   }
 };
+
 
 // Submit code for all test cases
 export const submitCode = async (req, res) => {

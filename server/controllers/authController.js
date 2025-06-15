@@ -170,39 +170,41 @@ export const isAuthenticated = async(req,res)=>{
 
 //password reset using otp 
 //password reset using otp 
-export const sendResetOtp = async (req,res) => {
-    const{email} = req.body;
-    if(!email){
-        return res.json({success:false, message: 'Email is required'})
-    }
-    try {
-        const user = await userModel.findOne({email});
-        if(!user){
-            return res.json({success: false, message: 'User not found'});
-        }
-        const otp = String(Math.floor(100000 + Math.random() * 900000))
-        user.resetOtp = otp;
-        user.resetOtpExpireAt = Date.now()+ 15 * 60 * 1000
-        await user.save();
-        
-        const mailOption = {
-            from: process.env.SENDER_EMAIL, // Make sure this is set in .env
-            to: user.email,
-            subject: 'Password Reset OTP - CodeClash',
-            text: `Your OTP for resetting your password is ${otp}. Use this OTP to reset your password. This OTP will expire in 15 minutes.`
-        }
-        
-        console.log('Attempting to send email to:', user.email); // Add logging
-        await transporter.sendMail(mailOption);
-        console.log('Email sent successfully to:', user.email); // Add logging
-        
-        res.json({success: true, message: "Password reset OTP sent on email"});
+export const sendResetOtp = async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.json({ success: false, message: "Email is required" });
+  }
 
-    } catch (error) {
-        console.error('sendResetOtp error:', error); // Add detailed logging
-        return res.json({success:false, message: error.message})
+  try {
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
     }
-}
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    user.resetOtp = otp;
+    user.resetOtpExpireAt = Date.now() + 15 * 60 * 1000; // 15 minutes
+    await user.save();
+
+    const mailOption = {
+      from: process.env.SENDER_EMAIL, // Must match Brevo-verified email
+      to: user.email,
+      subject: "Password Reset OTP - CodeClash",
+      html: `<p>Your OTP is: <strong>${otp}</strong></p>`,
+    };
+
+    console.log("Sending OTP to:", user.email);
+    await transporter.sendMail(mailOption);
+    console.log("OTP sent successfully");
+
+    res.json({ success: true, message: "Password reset OTP sent on email" });
+  } catch (error) {
+    console.error("OTP Send Error:", error);
+    res.json({ success: false, message: "Failed to send OTP. Please try again." });
+  }
+};
+
 
 //reset user pass
 export const resetPassword = async (req,res)=>{

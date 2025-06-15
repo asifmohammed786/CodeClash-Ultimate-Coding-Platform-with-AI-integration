@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectDB from './config/mongodb.js';
+import nodemailer from "nodemailer";
 
 // Routers
 import authRouter from './routes/authRoutes.js';
@@ -16,27 +17,50 @@ import contestRouter from './routes/contest.js';
 dotenv.config();
 
 const app = express();
-const port = process.env.port || 4000;
+const port = process.env.PORT || 4000;
 
-// Connect to MongoDB
+// === ✅ Connect to MongoDB ===
 connectDB();
 
+// === ✅ Brevo SMTP Transporter ===
+export const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: false, // Brevo uses STARTTLS
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
+
 // === ✅ CORS Configuration ===
+const allowedOrigins = [
+  'https://codeclashes.com',
+  'https://www.codeclashes.com',
+  'http://localhost:3000'
+];
+
 app.use(cors({
-  origin: ["https://codeclashes.com", "https://api.codeclashes.com"],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
 
-// Middleware
+// === ✅ Middlewares ===
 app.use(express.json());
 app.use(cookieParser());
 
-// Test route
-app.get("/", (req, res) => res.send("API working ✅"));
+// === ✅ Health check route ===
+app.get("/", (req, res) => res.send("✅ API is working!"));
 
-// Routes
+// === ✅ API Routes ===
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
 app.use('/api/problems', problemRouter);
@@ -44,7 +68,7 @@ app.use('/api/compiler', compilerRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/contests', contestRouter);
 
-// Start server
+// === ✅ Start server ===
 app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server started on port: ${port}`);
 });

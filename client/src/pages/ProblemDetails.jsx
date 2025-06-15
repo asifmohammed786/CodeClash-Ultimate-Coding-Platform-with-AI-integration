@@ -4,6 +4,7 @@ import axios from 'axios';
 import { AppContext } from '../context/AppContext';
 import Compiler from './Compiler';
 import SubmissionHistory from './SubmissionHistory';
+import ReactMarkdown from 'react-markdown'; // ✅ NEW
 
 const ProblemDetails = () => {
   const { backendUrl } = useContext(AppContext);
@@ -12,16 +13,11 @@ const ProblemDetails = () => {
   const [problem, setProblem] = useState(null);
   const [tab, setTab] = useState('description');
 
-  // For AI Bug Finder
   const [showBugFinder, setShowBugFinder] = useState(false);
   const [aiBugResult, setAiBugResult] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
-
-  // For AI Hint
   const [aiHint, setAiHint] = useState('');
   const [hintLoading, setHintLoading] = useState(false);
-
-  // For code/language/failure tracking
   const [userCode, setUserCode] = useState('');
   const [language, setLanguage] = useState('cpp');
   const [lastFailCase, setLastFailCase] = useState(null);
@@ -33,62 +29,49 @@ const ProblemDetails = () => {
       .catch(() => setProblem(null));
   }, [backendUrl, id]);
 
-  // Prevent background scroll when modal is open
   useEffect(() => {
-    if (showBugFinder) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = showBugFinder ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [showBugFinder]);
 
   if (!problem) return <div className="p-8">Loading...</div>;
 
   const getDifficultyBadge = (difficulty) => {
-    if (difficulty === 'Easy')
-      return 'bg-green-100 text-green-700 border border-green-400';
-    if (difficulty === 'Medium')
-      return 'bg-yellow-100 text-yellow-700 border border-yellow-400';
+    if (difficulty === 'Easy') return 'bg-green-100 text-green-700 border border-green-400';
+    if (difficulty === 'Medium') return 'bg-yellow-100 text-yellow-700 border border-yellow-400';
     return 'bg-red-100 text-red-700 border border-red-400';
   };
 
-  // Sample test cases
   const sampleTestCases = problem.testCases?.filter(tc => tc.isSample);
-
-  // Dummy: Pick first sample as failing case for demo
-  // Replace with real failed test case from submission result
   const failingTestCase = lastFailCase || (sampleTestCases && sampleTestCases[0]);
   const errorOutput = lastFailOutput || 'Your code output or error here';
 
-  // AI Bug Finder handler
   const handleAIBugFinder = async () => {
     setAiLoading(true);
     setAiBugResult(null);
     try {
       const { data } = await axios.post(`${backendUrl}/api/ai/bug-finder`, {
         code: userCode || '// User code here',
-        language: language || 'cpp',
+        language,
         testCaseInput: failingTestCase?.input || '',
         testCaseOutput: failingTestCase?.output || '',
-        errorOutput: errorOutput || '',
+        errorOutput,
         problemTitle: problem.title
       });
       setAiBugResult(data.explanation);
-    } catch (err) {
+    } catch {
       setAiBugResult('AI could not analyze the bug. Please try again.');
     }
     setAiLoading(false);
   };
 
-  // AI Hint handler
   const handleAIHint = async () => {
     setHintLoading(true);
     setAiHint('');
     try {
       const { data } = await axios.post(`${backendUrl}/api/ai/hint`, { problem });
       setAiHint(data.hint);
-    } catch (err) {
+    } catch {
       setAiHint('AI could not generate a hint. Please try again.');
     }
     setHintLoading(false);
@@ -96,9 +79,7 @@ const ProblemDetails = () => {
 
   return (
     <div className="flex h-[calc(100vh-64px)]">
-      {/* Left: Problem Info and Tabs */}
       <div className="w-full md:w-1/2 border-r bg-white overflow-y-auto">
-        {/* Back Button with divider */}
         <div className="p-4 pb-0 bg-white sticky top-0 z-20">
           <button
             onClick={() => navigate('/problems')}
@@ -106,13 +87,11 @@ const ProblemDetails = () => {
             style={{ boxShadow: '0 1px 4px rgba(99,102,241,0.04)' }}
           >
             <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
-              <path d="M15 19l-7-7 7-7" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M15 19l-7-7 7-7" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Back to Problems
           </button>
-          {/* Divider */}
           <div className="mt-4 mb-2 border-b border-gray-200" />
-          {/* Tabs */}
           <div className="flex border-b bg-white">
             <button
               onClick={() => setTab('description')}
@@ -136,7 +115,6 @@ const ProblemDetails = () => {
             </button>
           </div>
         </div>
-        {/* Tab Content */}
         <div className="p-6">
           {tab === 'description' && (
             <>
@@ -170,8 +148,7 @@ const ProblemDetails = () => {
                   {problem.difficulty}
                 </span>
               </div>
-              {/* Sample Test Cases */}
-              {sampleTestCases && sampleTestCases.length > 0 && (
+              {sampleTestCases?.length > 0 && (
                 <div className="mt-8">
                   <h3 className="text-lg font-bold text-indigo-700 mb-4">Sample Test Cases</h3>
                   {sampleTestCases.map((tc, idx) => (
@@ -196,7 +173,6 @@ const ProblemDetails = () => {
           )}
         </div>
       </div>
-      {/* Right: Code Editor */}
       <div className="w-full md:w-1/2 bg-[#18181b] flex flex-col">
         <Compiler
           problem={problem}
@@ -207,7 +183,7 @@ const ProblemDetails = () => {
         />
       </div>
 
-      {/* AI Bug Finder Modal */}
+      {/* ✅ AI Bug Finder Modal with Markdown */}
       {showBugFinder && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-xl relative max-h-[80vh] overflow-y-auto">
@@ -238,8 +214,8 @@ const ProblemDetails = () => {
               {aiLoading ? "Analyzing..." : "Analyze Bug"}
             </button>
             {aiBugResult && (
-              <div className="mt-4 bg-gray-50 border-l-4 border-pink-600 p-3 rounded text-gray-800 whitespace-pre-wrap text-sm">
-                {aiBugResult}
+              <div className="mt-4 bg-gray-50 border-l-4 border-pink-600 p-3 rounded text-gray-800 text-sm">
+                <ReactMarkdown>{aiBugResult}</ReactMarkdown>
               </div>
             )}
           </div>

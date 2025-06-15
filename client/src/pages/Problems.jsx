@@ -7,12 +7,23 @@ const Problems = () => {
   const { backendUrl, userData } = useContext(AppContext);
   const [problems, setProblems] = useState([]);
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get(backendUrl + '/api/problems')
-      .then(res => setProblems(res.data.problems || []))
-      .catch(() => setProblems([]));
+    const fetchProblems = async () => {
+      try {
+        setLoading(true);
+        const { data } = await axios.get(`${backendUrl}/api/problems`);
+        setProblems(data.problems || []);
+      } catch (err) {
+        setProblems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProblems();
   }, [backendUrl]);
 
   const handleDelete = async (id) => {
@@ -41,8 +52,8 @@ const Problems = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white relative">
-      {/* Home button at top-left */}
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white relative px-4">
+      {/* Home button */}
       <div className="absolute left-0 top-0 m-4 z-10">
         <button
           className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 shadow"
@@ -51,7 +62,8 @@ const Problems = () => {
           ← Home
         </button>
       </div>
-      {/* Add Problem button at top-right (if admin) */}
+
+      {/* Add Problem button */}
       {userData?.isAdmin && (
         <div className="absolute right-0 top-0 m-4 z-10">
           <button
@@ -62,9 +74,10 @@ const Problems = () => {
           </button>
         </div>
       )}
-      {/* Main content */}
-      <div className="flex flex-col items-center pt-20 pb-12 max-w-2xl mx-auto">
+
+      <div className="flex flex-col items-center pt-20 pb-12 max-w-2xl mx-auto transition-all duration-300">
         <h1 className="text-4xl font-bold mb-8 text-center drop-shadow-lg">Problems</h1>
+
         <input
           type="text"
           value={search}
@@ -72,17 +85,26 @@ const Problems = () => {
           placeholder="Find problem..."
           className="mb-8 px-4 py-2 border border-indigo-200 rounded w-full shadow focus:ring-2 focus:ring-indigo-300"
         />
-        <div className="space-y-4 w-full">
-          {filteredProblems.length === 0 ? (
-            <div className="text-gray-500 text-center">No problems found.</div>
-          ) : (
-            filteredProblems.map(p => (
+
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-indigo-500 border-solid"></div>
+            <span className="ml-4 text-indigo-600 font-medium">Loading problems...</span>
+          </div>
+        ) : filteredProblems.length === 0 ? (
+          <div className="text-gray-500 text-center animate-pulse">No problems found.</div>
+        ) : (
+          <div className="space-y-4 w-full">
+            {filteredProblems.map(p => (
               <div
                 key={p._id}
                 className="flex items-center justify-between p-5 bg-white rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 border border-indigo-100"
               >
                 <div>
-                  <Link to={`/problems/${p._id}`} className="font-bold text-lg text-indigo-700 hover:underline">
+                  <Link
+                    to={`/problems/${p._id}`}
+                    className="font-bold text-lg text-indigo-700 hover:underline"
+                  >
                     {p.title}
                   </Link>
                   <span
@@ -108,9 +130,9 @@ const Problems = () => {
                   </div>
                 )}
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
