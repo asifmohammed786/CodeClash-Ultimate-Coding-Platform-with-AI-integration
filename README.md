@@ -19,12 +19,6 @@
 
 ---
 
-## ✨ Animated Preview
-
-<p align="center">
-  <!-- Replace with your actual GIF if available -->
-  <img src="screenshots/codeclash-demo.gif" width="700" alt="Animated demo"/>
-</p>
 
 ---
 
@@ -91,7 +85,8 @@
 ## 📦 How to Clone & Run Locally
 
 ### 1. **Clone the repo**
-git clone https://github.com/asifmohammed786/CodeClash-Ultimate-Coding-Platform-with-AI-integration.git cd CodeClash-Ultimate-Coding-Platform-with-AI-integration
+git clone https://github.com/asifmohammed786/CodeClash-Ultimate-Coding-Platform-with-AI-integration.git 
+ cd CodeClash-Ultimate-Coding-Platform-with-AI-integration
 
 ### 2. **Setup Environment Variables**
 - Copy `.env.example` to `.env` in both `/server` and `/client`.
@@ -122,7 +117,7 @@ docker-compose up –build
 
 ---
 
-## 👨‍💻 For Recruiters
+## 👨‍💻 For Viewers
 
 > **Why should you check out CodeClash?**
 >
@@ -141,8 +136,7 @@ docker-compose up –build
 ## 📬 Contact
 
 - **Email:** asifmohammed85113@gmail.com
-- **LinkedIn:** [Your LinkedIn](https://linkedin.com/in/yourprofile)
-- **Portfolio:** [Your Portfolio Link](https://your-portfolio.com)
+- **LinkedIn:** [My LinkedIn](linkedin.com/in/mohammed-asif-hasan-2a4b8a29a)
 
 ---
 
